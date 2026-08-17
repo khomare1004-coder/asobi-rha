@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="description" content="カメラの前の動き、または画面タッチであわを割る、リハビリ・運動あそび用のゲーム">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="うみのあわ">
+<meta name="theme-color" content="#061523">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<title>うみのあわ — カメラでもタッチでも遊べる運動あそび</title>
+<style>
+:root{
+  --deep:#061523;--glow:#5FE3D0;--amber:#FFC061;--coral:#FF7E93;
+  --foam:#E8F5F8;--dim:#7FA3B8;
+  --display:"Hiragino Maru Gothic ProN","ヒラギノ丸ゴ ProN","Zen Maru Gothic",
+            "Yu Gothic Medium","游ゴシック Medium","Hiragino Sans","Noto Sans JP",
+            system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --num:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --top:env(safe-area-inset-top);--bot:env(safe-area-inset-bottom);
+  --lft:env(safe-area-inset-left);--rgt:env(safe-area-inset-right);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overscroll-behavior:none}
+body{
+  background:radial-gradient(120% 80% at 50% 0%,#0E2C46,var(--deep) 72%);
+  color:var(--foam);font-family:var(--display);overflow:hidden;
+  touch-action:none;-webkit-user-select:none;user-select:none;
+  -webkit-font-smoothing:antialiased;
+}
+button,select{font-family:inherit;color:inherit;border:0;background:none}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--glow);outline-offset:2px}
+
+.app{position:fixed;inset:0;display:flex;flex-direction:column;
+  padding:calc(var(--top) + 8px) calc(var(--rgt) + 8px) calc(var(--bot) + 8px) calc(var(--lft) + 8px)}
+.stage{position:relative;flex:1;min-height:0;border-radius:20px;overflow:hidden;background:#04101B;
+  box-shadow:0 0 0 1px rgba(95,227,208,.16)}
+#view{display:block;width:100%;height:100%;touch-action:none}
+#cam0{position:absolute;top:0;left:0;width:2px;height:2px;opacity:.01;pointer-events:none}
+
+.hud{position:absolute;inset:clamp(12px,2.2vmin,22px) clamp(14px,2.6vmin,26px) auto;
+  display:flex;justify-content:space-between;pointer-events:none;font-variant-numeric:tabular-nums}
+.hud .n{font-family:var(--num);font-size:clamp(28px,5vmin,46px);line-height:1;letter-spacing:-.02em}
+.hud .k{font-size:clamp(9px,1.3vmin,12px);letter-spacing:.2em;color:var(--dim);margin-bottom:4px}
+.hud .right{text-align:right}
+
+.rail{display:flex;gap:8px;padding-top:9px;max-width:760px;width:100%;margin:0 auto}
+.rail button{flex:1;min-height:clamp(48px,7vmin,60px);border-radius:15px;
+  background:rgba(95,227,208,.1);border:1px solid rgba(95,227,208,.26);
+  font-size:clamp(14px,1.9vmin,17px);font-weight:600}
+.rail button:hover{background:rgba(95,227,208,.18)}
+.rail button:active{background:rgba(95,227,208,.26)}
+.rail button[hidden]{display:none}
+
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:30;max-width:620px;margin:0 auto;
+  background:rgba(7,27,43,.97);backdrop-filter:blur(16px);
+  border:1px solid rgba(95,227,208,.24);border-bottom:0;border-radius:24px 24px 0 0;
+  padding:8px 20px calc(var(--bot) + 22px);max-height:86vh;overflow-y:auto;
+  transform:translateY(102%);transition:transform .28s cubic-bezier(.3,.9,.3,1)}
+.sheet.open{transform:translateY(0)}
+.grip{width:40px;height:4px;border-radius:2px;background:rgba(232,245,248,.3);margin:6px auto 16px}
+.field{margin-bottom:17px}
+.field label{font-size:14px;color:var(--dim);display:flex;justify-content:space-between;margin-bottom:8px}
+.field label b{color:var(--foam);font-family:var(--num);font-weight:500}
+input[type=range]{width:100%;accent-color:var(--glow);height:30px}
+select{width:100%;padding:13px;border-radius:12px;background:#0C2740;color:var(--foam);
+  border:1px solid rgba(232,245,248,.16);font-size:16px}
+.sheet .close{width:100%;min-height:52px;border-radius:15px;background:var(--glow);color:#052029;
+  font-size:16px;font-weight:700;margin-top:4px}
+
+.screen{position:fixed;inset:0;z-index:40;display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  background:radial-gradient(90% 60% at 50% 35%,rgba(18,58,92,.97),rgba(6,21,35,.995))}
+.screen.on{display:block}
+.inner{min-height:100%;display:flex;flex-direction:column;justify-content:center;text-align:center;
+  padding:calc(var(--top) + 30px) 24px calc(var(--bot) + 30px);max-width:480px;margin:0 auto}
+.title{font-size:clamp(34px,7vmin,52px);letter-spacing:.06em;line-height:1.1}
+.title span{color:var(--glow)}
+.sub{margin-top:14px;font-size:15px;color:var(--dim);line-height:1.85}
+.lead{font-size:11px;letter-spacing:.22em;color:var(--glow);margin:28px 0 10px}
+.chips{display:flex;gap:7px;justify-content:center;flex-wrap:wrap}
+.chip{padding:11px 17px;border-radius:999px;border:1px solid rgba(232,245,248,.2);
+  font-size:14px;color:var(--dim)}
+.chip[aria-pressed=true]{background:var(--foam);color:#062033;border-color:transparent;font-weight:700}
+.big{width:100%;min-height:60px;border-radius:18px;background:var(--glow);color:#052029;
+  font-size:18px;font-weight:700;margin-top:26px}
+.big:hover{background:#7EEDDC}
+.ghost{width:100%;min-height:52px;border-radius:18px;border:1px solid rgba(232,245,248,.2);
+  color:var(--dim);font-size:15px;margin-top:10px}
+.note{margin-top:24px;font-size:12px;color:var(--dim);line-height:1.85;text-align:left;
+  border-top:1px solid rgba(232,245,248,.12);padding-top:16px}
+.callout{margin-top:18px;padding:15px 17px;border-radius:16px;text-align:left;
+  font-size:13.5px;line-height:1.9;background:rgba(95,227,208,.09);
+  border:1px solid rgba(95,227,208,.28)}
+.callout b{color:var(--glow)}
+.callout.warn{background:rgba(255,126,147,.1);border-color:rgba(255,126,147,.35)}
+.callout.warn b{color:var(--coral)}
+.callout[hidden]{display:none}
+.stats{display:flex;justify-content:center;gap:26px;margin:24px 0}
+.stat .v{font-family:var(--num);font-size:clamp(30px,6vmin,44px);line-height:1;
+  color:var(--amber);letter-spacing:-.03em}
+.stat .l{font-size:10px;letter-spacing:.18em;color:var(--dim);margin-top:8px}
+.map{max-width:320px;margin:0 auto;width:100%}
+.map .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;aspect-ratio:4/3}
+.map .cell{border-radius:7px;background:rgba(95,227,208,.07);display:grid;place-items:center;
+  font-family:var(--num);font-size:13px}
+.map .axis{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);
+  letter-spacing:.14em;margin-top:8px}
+.caption{font-size:11px;color:var(--dim);letter-spacing:.16em;margin-bottom:10px}
+.pause{position:absolute;inset:0;display:none;place-items:center;background:rgba(4,16,27,.88);
+  font-size:17px;color:var(--dim)}
+.pause.on{display:grid}
+@media (min-width:900px){ .inner{max-width:560px} }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="stage" id="stage">
+    <canvas id="view"></canvas>
+    <video id="cam0" playsinline webkit-playsinline muted autoplay></video>
+    <div class="hud">
+      <div><div class="k">とれた あわ</div><div class="n" id="score">0</div></div>
+      <div class="right"><div class="k">じかん</div><div class="n" id="clock">0:00</div></div>
+    </div>
+    <div class="pause" id="pause">画面にもどると つづきます</div>
+  </div>
+  <div class="rail">
+    <button id="settingsBtn">設定</button>
+    <button id="flipBtn">カメラ切替</button>
+    <button id="fsBtn">全画面</button>
+    <button id="stopBtn">おわる</button>
+  </div>
+</div>
+
+<div class="sheet" id="sheet">
+  <div class="grip"></div>
+  <div class="field">
+    <label for="sens">動きの感度 <b id="sensV">ふつう</b></label>
+    <input type="range" id="sens" min="1" max="5" value="3">
+  </div>
+  <div class="field">
+    <label for="size">あわの大きさ <b id="sizeV">ふつう</b></label>
+    <input type="range" id="size" min="1" max="5" value="3">
+  </div>
+  <div class="field">
+    <label for="count">いちどに出る数 <b id="countV">3</b></label>
+    <input type="range" id="count" min="1" max="8" value="3">
+  </div>
+  <div class="field">
+    <label for="speed">あわの動き <b id="speedV">ゆっくり</b></label>
+    <input type="range" id="speed" min="0" max="3" value="1">
+  </div>
+  <div class="field">
+    <label for="area">出てくる場所</label>
+    <select id="area">
+      <option value="all">画面ぜんたい</option>
+      <option value="left">左がわだけ</option>
+      <option value="right">右がわだけ</option>
+      <option value="top">上のほうだけ</option>
+      <option value="bottom">下のほうだけ</option>
+      <option value="center">まん中だけ</option>
+    </select>
+  </div>
+  <div class="field" id="camField">
+    <label for="cam">カメラ映像</label>
+    <select id="cam">
+      <option value="0.3">うっすら映す</option>
+      <option value="0.75">はっきり映す</option>
+      <option value="0">映さない（光だけ）</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="sound">音</label>
+    <select id="sound"><option value="1">鳴らす</option><option value="0">鳴らさない</option></select>
+  </div>
+  <button class="close" id="closeSheet">とじる</button>
+</div>
+
+<div class="screen on" id="intro">
+  <div class="inner">
+    <h1 class="title">うみの<span>あわ</span></h1>
+    <p class="sub" id="introSub">体を動かすか、画面をさわると、あわがはじけます。</p>
+
+    <div class="lead">あそびかた</div>
+    <div class="chips" id="modeChoices">
+      <button class="chip" aria-pressed="true" data-mode="camera">カメラで体を動かす</button>
+      <button class="chip" data-mode="touch">画面をさわる</button>
+    </div>
+
+    <div class="lead">じかん</div>
+    <div class="chips" id="lenChoices">
+      <button class="chip" data-len="60">1分</button>
+      <button class="chip" aria-pressed="true" data-len="180">3分</button>
+      <button class="chip" data-len="300">5分</button>
+      <button class="chip" data-len="0">むせいげん</button>
+    </div>
+
+    <button class="big" id="startBtn">はじめる</button>
+
+    <div class="callout warn" id="httpWarn" hidden>
+      <b>このアドレスではカメラを使えません。</b><br>
+      カメラを使うには <b>https://</b> で始まるアドレスから開く必要があります。
+      「画面をさわる」なら今のままでも遊べます。
+    </div>
+    <div class="callout warn" id="err" hidden></div>
+
+    <p class="note">
+      ・映像はこの端末の中だけで処理します。録画も送信もしません。<br>
+      ・カメラは端末を立てかけ、上半身が画面に入る位置に置いてください。<br>
+      ・うしろで人やカーテンが動くと反応します。感度を下げてください。<br>
+      ・このページのURLを配れば、誰でも同じように使えます。
+    </p>
+  </div>
+</div>
+
+<div class="screen" id="result">
+  <div class="inner">
+    <h1 class="title" style="font-size:30px">おつかれさま</h1>
+    <div class="stats">
+      <div class="stat"><div class="v" id="rScore">0</div><div class="l">とれた あわ</div></div>
+      <div class="stat"><div class="v" id="rMin">0</div><div class="l">1分あたり</div></div>
+      <div class="stat"><div class="v" id="rTime">0:00</div><div class="l">じかん</div></div>
+    </div>
+    <div class="map">
+      <div class="caption">リーチマップ（とれた場所）</div>
+      <div class="grid" id="mapGrid"></div>
+      <div class="axis"><span id="axL">左</span><span id="axR">右</span></div>
+    </div>
+    <button class="big" id="againBtn">もういちど</button>
+    <button class="ghost" id="backBtn">さいしょへ</button>
+  </div>
+</div>
+
+<script>
+(()=>{
+"use strict";
+const $=id=>document.getElementById(id);
+const view=$('view'), vctx=view.getContext('2d');
+const video=$('cam0'), stageEl=$('stage');
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const isIOS=/iP(hone|ad|od)/.test(navigator.userAgent)||
+            (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const secure=window.isSecureContext||location.protocol==='https:'||
+             ['localhost','127.0.0.1'].includes(location.hostname);
+const embedded=(()=>{ try{ return window.self!==window.top; }catch(e){ return true; } })();
+const canCamera=!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)&&secure;
+
+let AW=128,AH=96,acv,actx,gcv,gctx,glowImg,mask,prev=null;
+function buildBuffers(){
+  AH=Math.max(48,Math.min(320,Math.round(AW*H/W)));
+  acv=document.createElement('canvas'); acv.width=AW; acv.height=AH;
+  actx=acv.getContext('2d',{willReadFrequently:true});
+  gcv=document.createElement('canvas'); gcv.width=AW; gcv.height=AH;
+  gctx=gcv.getContext('2d');
+  glowImg=gctx.createImageData(AW,AH);
+  mask=new Uint8Array(AW*AH); prev=null;
+}
+
+let W=390,H=600,dpr=1;
+let mode='camera';
+let running=false,paused=false,elapsed=0,limit=180;
+let score=0,bubbles=[],sparks=[],reachMap=new Array(12).fill(0),streak=0,lastHit=0;
+let facing='user',stream=null,wake=null;
+const pointers=new Map();
+const cfg={sens:3,size:3,count:3,speed:1,area:'all',cam:0.3,sound:1};
+
+
+/* ---------- 音 ---------- */
+let ac=null;
+const SCALE=[0,2,4,7,9,12,14,16,19,21];
+function unlockAudio(){
+  const C=window.AudioContext||window.webkitAudioContext; if(!C) return;
+  if(!ac) ac=new C();
+  if(ac.state==='suspended') ac.resume();
+  const b=ac.createBuffer(1,1,22050), s=ac.createBufferSource();
+  s.buffer=b; s.connect(ac.destination); s.start(0);
+}
+function tone(fr,amp,type,at,dur){
+  const o=ac.createOscillator(), g=ac.createGain();
+  o.type=type; o.frequency.setValueAtTime(fr,at);
+  g.gain.setValueAtTime(0,at);
+  g.gain.linearRampToValueAtTime(amp,at+0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001,at+dur);
+  o.connect(g).connect(ac.destination); o.start(at); o.stop(at+dur+0.05);
+}
+function pop(i){
+  if(!cfg.sound||!ac) return;
+  const t=ac.currentTime, f=392*Math.pow(2,SCALE[Math.min(i,SCALE.length-1)]/12);
+  tone(f,0.22,'triangle',t,0.5); tone(f*2,0.07,'sine',t,0.4);
+}
+function chime(){
+  if(!cfg.sound||!ac) return;
+  [0,4,7,12].forEach((s,i)=>tone(523.25*Math.pow(2,s/12),0.16,'sine',ac.currentTime+i*0.13,0.9));
+}
+function buzz(){ if(navigator.vibrate) try{ navigator.vibrate(18); }catch(e){} }
+
+/* ---------- レイアウト ---------- */
+function resize(){
+  const r=stageEl.getBoundingClientRect();
+  W=Math.max(120,r.width); H=Math.max(120,r.height);
+  dpr=Math.min(window.devicePixelRatio||1,2.5);
+  view.width=Math.round(W*dpr); view.height=Math.round(H*dpr);
+  vctx.setTransform(dpr,0,0,dpr,0,0);
+  buildBuffers(); bubbles=[];
+}
+let rt=null;
+const reflow=d=>{clearTimeout(rt);rt=setTimeout(resize,d)};
+addEventListener('resize',()=>reflow(180));
+addEventListener('orientationchange',()=>reflow(420));
+
+/* ---------- カメラ ---------- */
+function crop(){
+  const vw=video.videoWidth, vh=video.videoHeight;
+  if(!vw||!vh) return null;
+  const sa=W/H, va=vw/vh;
+  let sw,sh;
+  if(va>sa){ sh=vh; sw=vh*sa; } else { sw=vw; sh=vw/sa; }
+  return [(vw-sw)/2,(vh-sh)/2,sw,sh];
+}
+function drawVideo(ctx,w,h,alpha){
+  const c=crop(); if(!c) return;
+  ctx.save(); ctx.globalAlpha=alpha;
+  if(facing==='user'){ ctx.translate(w,0); ctx.scale(-1,1); }
+  ctx.drawImage(video,c[0],c[1],c[2],c[3],0,0,w,h);
+  ctx.restore();
+}
+async function openCam(){
+  if(stream) stream.getTracks().forEach(t=>t.stop());
+  stream=await navigator.mediaDevices.getUserMedia({
+    video:{facingMode:facing,width:{ideal:640},height:{ideal:480}},audio:false});
+  video.srcObject=stream;
+  await video.play();
+  await new Promise(r=>{ if(video.videoWidth) return r(); video.onloadedmetadata=r; setTimeout(r,1500); });
+  prev=null;
+}
+function closeCam(){
+  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+  video.srcObject=null;
+}
+
+/* ---------- あわ ---------- */
+const SIZES=[0.055,0.075,0.098,0.125,0.16];
+const SPEEDS=[0,6,13,24];
+const AREAS={all:[0,0,1,1],left:[0,0,.5,1],right:[.5,0,1,1],
+  top:[0,0,1,.5],bottom:[0,.5,1,1],center:[.22,.2,.78,.8]};
+function spawn(){
+  const a=AREAS[cfg.area], r=SIZES[cfg.size-1]*Math.min(W,H);
+  const x=(a[0]+Math.random()*(a[2]-a[0]))*W, y=(a[1]+Math.random()*(a[3]-a[1]))*H;
+  const c=[[95,227,208],[255,192,97],[255,126,147],[150,200,255]][Math.floor(Math.random()*4)];
+  const sp=SPEEDS[cfg.speed];
+  bubbles.push({x:Math.min(Math.max(x,r),W-r),y:Math.min(Math.max(y,r),H-r),
+    r,ph:Math.random()*6.28,vy:-(sp*(0.6+Math.random()*0.8)),c,life:0});
+}
+function burst(b){
+  const n=reduce?6:16;
+  for(let i=0;i<n;i++){const a=Math.random()*6.28,s=1+Math.random()*3.2;
+    sparks.push({x:b.x,y:b.y,vx:Math.cos(a)*s*2,vy:Math.sin(a)*s*2,l:1,c:b.c,r:2+Math.random()*3});}
+}
+
+/* ---------- 動き検出（カメラ） ---------- */
+function analyse(){
+  if(video.readyState<2||!video.videoWidth) return false;
+  actx.clearRect(0,0,AW,AH);
+  drawVideo(actx,AW,AH,1);
+  let cur;
+  try{ cur=actx.getImageData(0,0,AW,AH).data; }catch(e){ return false; }
+  if(!prev){ prev=new Uint8ClampedArray(cur); return false; }
+  const th=[70,50,34,22,14][cfg.sens-1]*3, g=glowImg.data;
+  for(let i=0,p=0;i<mask.length;i++,p+=4){
+    const d=Math.abs(cur[p]-prev[p])+Math.abs(cur[p+1]-prev[p+1])+Math.abs(cur[p+2]-prev[p+2]);
+    const on=d>th?1:0;
+    mask[i]=on; g[p]=95; g[p+1]=227; g[p+2]=208; g[p+3]=on?200:0;
+  }
+  prev.set(cur);
+  gctx.putImageData(glowImg,0,0);
+  return true;
+}
+function motionIn(b){
+  const sx=AW/W, sy=AH/H, cx=b.x*sx, cy=b.y*sy, r=b.r*Math.min(sx,sy);
+  const x0=Math.max(0,(cx-r)|0), x1=Math.min(AW-1,Math.ceil(cx+r));
+  const y0=Math.max(0,(cy-r)|0), y1=Math.min(AH-1,Math.ceil(cy+r));
+  let hit=0,tot=0;
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
+    const dx=x-cx,dy=y-cy;
+    if(dx*dx+dy*dy<=r*r){tot++;hit+=mask[y*AW+x];}
+  }
+  return tot?hit/tot:0;
+}
+
+/* ---------- タッチ／マウス ---------- */
+function localPoint(e){
+  const r=view.getBoundingClientRect();
+  return {x:(e.clientX-r.left)*(W/r.width), y:(e.clientY-r.top)*(H/r.height)};
+}
+function onPointer(e){
+  if(mode!=='touch'||!running||paused) return;
+  const p=localPoint(e);
+  pointers.set(e.pointerId,p);
+  for(let i=bubbles.length-1;i>=0;i--){
+    const b=bubbles[i], dx=b.x-p.x, dy=b.y-p.y;
+    if(dx*dx+dy*dy<=(b.r*1.15)*(b.r*1.15)){ hitBubble(b); bubbles.splice(i,1); }
+  }
+}
+view.addEventListener('pointerdown',e=>{view.setPointerCapture?.(e.pointerId);onPointer(e);});
+view.addEventListener('pointermove',e=>{ if(pointers.has(e.pointerId)||e.pressure>0) onPointer(e); });
+['pointerup','pointercancel','pointerleave'].forEach(t=>
+  view.addEventListener(t,e=>pointers.delete(e.pointerId)));
+
+/* ---------- ループ ---------- */
+let last=performance.now();
+function frame(now){
+  requestAnimationFrame(frame);
+  const dt=Math.min((now-last)/1000,0.05); last=now;
+  if(!running||paused) return;
+  elapsed+=dt;
+  if(limit&&elapsed>=limit){ finish(); return; }
+  $('clock').textContent=fmt(limit?limit-elapsed:elapsed);
+
+  const ok=(mode==='camera')?analyse():false;
+
+  vctx.fillStyle='#04101B'; vctx.fillRect(0,0,W,H);
+  if(mode==='camera'&&cfg.cam>0) drawVideo(vctx,W,H,cfg.cam);
+
+  vctx.save();
+  vctx.globalCompositeOperation='lighter'; vctx.imageSmoothingEnabled=true;
+  if(mode==='camera'){
+    if('filter' in vctx){
+      vctx.filter='blur(10px)'; vctx.globalAlpha=.85; vctx.drawImage(gcv,0,0,W,H); vctx.filter='none';
+    }else{
+      vctx.globalAlpha=.5;
+      for(const o of [0,6,-6]) vctx.drawImage(gcv,o,o,W,H);
+    }
+  }else{
+    const rr=Math.min(W,H)*0.075;
+    for(const p of pointers.values()){
+      const g=vctx.createRadialGradient(p.x,p.y,1,p.x,p.y,rr);
+      g.addColorStop(0,'rgba(95,227,208,.55)'); g.addColorStop(1,'rgba(95,227,208,0)');
+      vctx.fillStyle=g; vctx.beginPath(); vctx.arc(p.x,p.y,rr,0,6.283); vctx.fill();
+    }
+  }
+  vctx.restore();
+
+  while(bubbles.length<cfg.count) spawn();
+  for(let i=bubbles.length-1;i>=0;i--){
+    const b=bubbles[i];
+    b.life+=dt; b.y+=b.vy*dt; b.x+=Math.sin(now/900+b.ph)*12*dt;
+    if(b.y<-b.r||b.life>18){bubbles.splice(i,1);continue;}
+    if(b.y>H+b.r) b.y=H+b.r;
+    if(ok&&b.life>0.5&&motionIn(b)>[.30,.24,.18,.13,.09][cfg.sens-1]){
+      hitBubble(b); bubbles.splice(i,1); continue;
+    }
+    drawBubble(b,now);
+  }
+  for(let i=sparks.length-1;i>=0;i--){
+    const s=sparks[i];
+    s.x+=s.vx; s.y+=s.vy; s.vy+=.35; s.vx*=.97; s.l-=dt*1.5;
+    if(s.l<=0){sparks.splice(i,1);continue;}
+    vctx.save(); vctx.globalCompositeOperation='lighter'; vctx.globalAlpha=Math.max(s.l,0);
+    vctx.fillStyle='rgb('+s.c[0]+','+s.c[1]+','+s.c[2]+')';
+    vctx.beginPath(); vctx.arc(s.x,s.y,s.r*s.l,0,6.283); vctx.fill(); vctx.restore();
+  }
+}
+function drawBubble(b,now){
+  const r=b.r*(1+Math.sin(now/420+b.ph)*.045), c=b.c;
+  const g=vctx.createRadialGradient(b.x-r*.3,b.y-r*.35,r*.1,b.x,b.y,r);
+  g.addColorStop(0,'rgba('+c[0]+','+c[1]+','+c[2]+',.75)');
+  g.addColorStop(.65,'rgba('+c[0]+','+c[1]+','+c[2]+',.22)');
+  g.addColorStop(1,'rgba('+c[0]+','+c[1]+','+c[2]+',.06)');
+  vctx.save(); vctx.globalCompositeOperation='lighter';
+  vctx.fillStyle=g; vctx.beginPath(); vctx.arc(b.x,b.y,r,0,6.283); vctx.fill();
+  vctx.lineWidth=Math.max(2,r*.055); vctx.strokeStyle='rgba('+c[0]+','+c[1]+','+c[2]+',.9)';
+  vctx.beginPath(); vctx.arc(b.x,b.y,r,0,6.283); vctx.stroke();
+  vctx.fillStyle='rgba(255,255,255,.55)';
+  vctx.beginPath(); vctx.arc(b.x-r*.34,b.y-r*.36,r*.13,0,6.283); vctx.fill();
+  vctx.restore();
+}
+function hitBubble(b){
+  const now=performance.now();
+  streak=(now-lastHit<2600)?streak+1:0; lastHit=now;
+  score++; $('score').textContent=score;
+  burst(b); pop(streak); buzz();
+  const col=Math.min(3,(b.x/W*4)|0), row=Math.min(2,(b.y/H*3)|0);
+  reachMap[row*4+col]++;
+}
+
+/* ---------- セッション ---------- */
+const fmt=s=>{s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+async function lockScreen(){
+  try{ if('wakeLock' in navigator) wake=await navigator.wakeLock.request('screen'); }catch(e){}
+}
+function showErr(msg){ const el=$('err'); el.hidden=false; el.innerHTML=msg; }
+async function start(){
+  $('err').hidden=true;
+  unlockAudio();
+  if(mode==='camera'){
+    if(!canCamera){
+      return showErr('<b>この環境ではカメラを使えません。</b><br>'+
+        (secure?'ブラウザがカメラに対応していません。':'https:// のアドレスから開いてください。')+
+        '<br>「画面をさわる」を選べば、このまま遊べます。');
+    }
+    try{ await openCam(); }
+    catch(e){
+      const m={
+        NotAllowedError:'<b>カメラが許可されていません。</b><br>'+(isIOS
+          ? 'アドレスバーの「ぁあ」→ Webサイトの設定 → カメラ を「許可」にして、再読み込みしてください。'
+          : 'アドレスバーの鍵アイコン → カメラ を「許可」にして、再読み込みしてください。'),
+        NotFoundError:'<b>カメラが見つかりませんでした。</b><br>「画面をさわる」なら遊べます。',
+        NotReadableError:'<b>ほかのアプリがカメラを使っています。</b><br>そのアプリを閉じてからお試しください。'
+      }[e.name];
+      return showErr((m||('<b>カメラを開けませんでした（'+e.name+'）</b>'))+
+        '<br>「画面をさわる」に切り替えれば、このまま遊べます。');
+    }
+  }else{
+    closeCam();
+  }
+  lockScreen();
+  resize();
+  score=0; elapsed=0; bubbles=[]; sparks=[]; prev=null; streak=0; paused=false;
+  pointers.clear(); reachMap=new Array(12).fill(0);
+  $('score').textContent='0'; $('pause').classList.remove('on');
+  $('flipBtn').hidden=(mode!=='camera');
+  $('fsBtn').hidden=!document.documentElement.requestFullscreen||isIOS;
+  $('intro').classList.remove('on'); $('result').classList.remove('on');
+  last=performance.now(); running=true;
+}
+function finish(){
+  running=false;
+  if(wake){ wake.release().catch(()=>{}); wake=null; }
+  closeCam();
+  chime();
+  $('rScore').textContent=score;
+  $('rTime').textContent=fmt(elapsed);
+  $('rMin').textContent=elapsed>3?(score/(elapsed/60)).toFixed(1):'—';
+  const max=Math.max(1,...reachMap);
+  $('mapGrid').innerHTML=reachMap.map(v=>
+    '<div class="cell" style="background:rgba(255,192,97,'+(v/max*.85).toFixed(3)+')">'+(v||'')+'</div>'
+  ).join('');
+  const mirrored=(mode==='camera'&&facing==='user');
+  $('axL').textContent=mirrored?'本人の左':'画面の左';
+  $('axR').textContent=mirrored?'本人の右':'画面の右';
+  $('result').classList.add('on');
+  $('sheet').classList.remove('open');
+}
+
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){ if(running){paused=true;$('pause').classList.add('on');} }
+  else if(running&&paused){
+    paused=false; prev=null; last=performance.now();
+    $('pause').classList.remove('on'); lockScreen();
+  }
+});
+
+/* ---------- UI ---------- */
+$('startBtn').onclick=start;
+$('againBtn').onclick=start;
+$('backBtn').onclick=()=>{$('result').classList.remove('on');$('intro').classList.add('on')};
+$('stopBtn').onclick=()=>{ if(running) finish(); };
+$('settingsBtn').onclick=()=>$('sheet').classList.toggle('open');
+$('closeSheet').onclick=()=>$('sheet').classList.remove('open');
+$('flipBtn').onclick=async()=>{
+  facing=(facing==='user')?'environment':'user';
+  if(running&&mode==='camera'){ try{ await openCam(); }catch(e){ showErr('カメラを切り替えられませんでした。'); } }
+};
+$('fsBtn').onclick=()=>{
+  if(document.fullscreenElement) document.exitFullscreen();
+  else document.documentElement.requestFullscreen?.().catch(()=>{});
+};
+$('modeChoices').onclick=e=>{
+  const b=e.target.closest('[data-mode]'); if(!b) return;
+  [...$('modeChoices').children].forEach(c=>c.setAttribute('aria-pressed','false'));
+  b.setAttribute('aria-pressed','true'); mode=b.dataset.mode;
+  $('err').hidden=true;
+  $('camField').style.display=(mode==='camera')?'':'none';
+  $('introSub').textContent=(mode==='camera')
+    ? 'カメラの前で手や体を動かすと、動きが光ります。光であわにさわると、はじけます。'
+    : '画面にうつるあわを、指やマウスでさわるとはじけます。';
+  $('httpWarn').hidden=(mode!=='camera')||canCamera;
+};
+$('lenChoices').onclick=e=>{
+  const b=e.target.closest('[data-len]'); if(!b) return;
+  [...$('lenChoices').children].forEach(c=>c.setAttribute('aria-pressed','false'));
+  b.setAttribute('aria-pressed','true'); limit=+b.dataset.len;
+};
+const WORDS={sens:['とても にぶい','にぶい','ふつう','するどい','とても するどい'],
+             size:['とても小さい','小さい','ふつう','大きい','とても大きい'],
+             speed:['うごかない','ゆっくり','ふつう','はやい']};
+function bind(id,fn){ const el=$(id);
+  el.oninput=()=>fn(el.value); fn(el.value); }
+bind('sens',v=>{cfg.sens=+v;$('sensV').textContent=WORDS.sens[v-1]});
+bind('size',v=>{cfg.size=+v;$('sizeV').textContent=WORDS.size[v-1];bubbles=[]});
+bind('count',v=>{cfg.count=+v;$('countV').textContent=v});
+bind('speed',v=>{cfg.speed=+v;$('speedV').textContent=WORDS.speed[v];bubbles=[]});
+bind('area',v=>{cfg.area=v;bubbles=[]});
+bind('cam',v=>{cfg.cam=+v});
+bind('sound',v=>{cfg.sound=+v});
+document.addEventListener('gesturestart',e=>e.preventDefault());
+
+/* 初期状態 */
+if(embedded){
+  $('httpWarn').innerHTML='<b>この画面ではカメラを使えないことがあります。</b><br>'+
+    '共有リンクなどの埋め込み画面では、ブラウザがカメラを塞ぐためです。'+
+    'その場合は「画面をさわる」を選んでください。'+
+    'このファイルをネット上に置いて直接開けば、カメラも使えます。';
+  $('httpWarn').hidden=false;
+}
+if(!canCamera){
+  mode='touch';
+  [...$('modeChoices').children].forEach(c=>
+    c.setAttribute('aria-pressed',String(c.dataset.mode==='touch')));
+  $('introSub').textContent='画面にうつるあわを、指やマウスでさわるとはじけます。';
+  $('httpWarn').hidden=false;
+  $('camField').style.display='none';
+}
+
+resize();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

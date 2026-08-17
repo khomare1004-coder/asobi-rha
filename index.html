@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="リハビリ・療育で使える、ブラウザで動く運動あそび／認知あそび">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="あそびの箱">
+<meta name="theme-color" content="#061523">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<title>あそびの箱</title>
+<style>
+:root{
+  --deep:#061523;--glow:#5FE3D0;--amber:#FFC061;--lilac:#B79CFF;
+  --foam:#E8F5F8;--dim:#7FA3B8;
+  --display:"Hiragino Maru Gothic ProN","ヒラギノ丸ゴ ProN","Zen Maru Gothic",
+            "Yu Gothic Medium","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+  --top:env(safe-area-inset-top);--bot:env(safe-area-inset-bottom);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{min-height:100dvh;background:radial-gradient(120% 70% at 50% 0%,#0E2C46,var(--deep) 72%);
+  color:var(--foam);font-family:var(--display);-webkit-font-smoothing:antialiased;
+  padding:calc(var(--top) + 40px) 22px calc(var(--bot) + 50px)}
+.wrap{max-width:560px;margin:0 auto}
+h1{font-size:clamp(30px,7.5vw,42px);letter-spacing:.08em;line-height:1.2}
+h1 span{color:var(--glow)}
+.lede{margin-top:14px;font-size:14.5px;color:var(--dim);line-height:1.9}
+.lead{font-size:11px;letter-spacing:.24em;color:var(--glow);margin:36px 0 14px}
+
+a.card{display:block;text-decoration:none;color:inherit;margin-bottom:12px;
+  padding:20px 22px;border-radius:20px;background:rgba(232,245,248,.05);
+  border:1px solid rgba(232,245,248,.14);transition:background .15s,transform .1s}
+a.card:hover{background:rgba(232,245,248,.1)}
+a.card:active{transform:scale(.99)}
+a.card .row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+a.card h2{font-size:20px;letter-spacing:.03em}
+a.card .tag{font-size:10.5px;letter-spacing:.16em;padding:4px 9px;border-radius:999px;
+  border:1px solid currentColor}
+a.card p{margin-top:10px;font-size:13.5px;line-height:1.85;color:var(--dim)}
+a.card .how{margin-top:11px;font-size:12px;color:var(--dim);letter-spacing:.04em;
+  padding-top:10px;border-top:1px solid rgba(232,245,248,.1)}
+.c1{border-left:3px solid var(--glow)} .c1 .tag{color:var(--glow)}
+.c2{border-left:3px solid var(--amber)} .c2 .tag{color:var(--amber)}
+.c3{border-left:3px solid var(--lilac)} .c3 .tag{color:var(--lilac)}
+
+.tips{margin-top:14px;padding:18px 20px;border-radius:18px;
+  background:rgba(95,227,208,.08);border:1px solid rgba(95,227,208,.24);
+  font-size:13px;line-height:2}
+.tips b{color:var(--glow)}
+.foot{margin-top:34px;padding-top:18px;border-top:1px solid rgba(232,245,248,.12);
+  font-size:11.5px;color:var(--dim);line-height:2}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>あそびの<span>箱</span></h1>
+  <p class="lede">
+    リハビリ・療育の場で使える、ブラウザで動くあそびです。<br>
+    インストール不要。タップすればすぐ始まります。
+  </p>
+
+  <div class="lead">からだ を うごかす</div>
+
+  <a class="card c1" href="umi.html">
+    <div class="row"><h2>うみのあわ</h2><span class="tag">リーチ・上肢運動</span></div>
+    <p>あわを割るあそび。カメラの前で体を動かすと動きが光り、光であわに触れると割れます。
+       カメラを使わず、指やマウスで触るモードもあります。</p>
+    <div class="how">終了後にリーチマップ（到達範囲の偏り）が出ます</div>
+  </a>
+
+  <div class="lead">あたま を つかう</div>
+
+  <a class="card c2" href="gaman.html">
+    <div class="row"><h2>がまんのあわ</h2><span class="tag">衝動性コントロール</span></div>
+    <p>さわる／さわらないを選ぶ課題。Go/No-Go、待機、ストップ信号の3種類。
+       「がまんできた回数」「反応の速さとばらつき」を記録します。</p>
+    <div class="how">1回ごとの記録が棒グラフで残ります</div>
+  </a>
+
+  <a class="card c3" href="kimochi.html">
+    <div class="row"><h2>きもちの てがかり</h2><span class="tag">表情の読み取り</span></div>
+    <p>顔から気持ちを読み取るあそび。答えたあと、まゆ・め・くちのどこが手がかりだったかを示します。
+       顔を作る／ふたりで当て合うモードも。</p>
+    <div class="how">気持ちごとの正答数が出ます</div>
+  </a>
+
+  <div class="lead">つかいかた</div>
+  <div class="tips">
+    <b>アプリのように使う</b><br>
+    iPhone・iPad … 共有ボタン（□に↑）→ ホーム画面に追加<br>
+    Android … メニュー → アプリをインストール<br>
+    PC … アドレスバー右のインストールアイコン<br><br>
+    <b>カメラを使うとき</b><br>
+    最初に確認が出たら「許可」を押してください。
+    映像は端末の中だけで処理され、録画も送信もされません。
+  </div>
+
+  <p class="foot">
+    設定でむずかしさを細かく変えられます。対象者に合わせて調整してください。<br>
+    このページのURLを配れば、誰でも同じように使えます。
+  </p>
+</div>
+<script>
+if('serviceWorker' in navigator && location.protocol==='https:'){
+  addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>
