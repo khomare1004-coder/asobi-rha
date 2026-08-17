@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<title>きもちの てがかり</title>
+<style>
+:root{
+  --bg:#1B1430;--bg2:#2A1F47;--deep:#160F28;
+  --lilac:#B79CFF;--peach:#FFB98A;--mint:#8CE0C0;--rose:#FF9BB3;
+  --foam:#F2EEFB;--dim:#9A8FBA;
+  --display:"Hiragino Maru Gothic ProN","ヒラギノ丸ゴ ProN","Zen Maru Gothic",
+            "Yu Gothic Medium","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+  --num:ui-monospace,"SF Mono",Menlo,monospace;
+  --top:env(safe-area-inset-top);--bot:env(safe-area-inset-bottom);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overscroll-behavior:none}
+body{background:radial-gradient(120% 80% at 50% 0%,#2C2150,#160F28 74%);
+  color:var(--foam);font-family:var(--display);overflow:hidden;
+  -webkit-user-select:none;user-select:none}
+button,select{font-family:inherit;color:inherit;border:0;background:none}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--lilac);outline-offset:2px}
+
+.app{position:fixed;inset:0;display:flex;flex-direction:column;
+  padding:calc(var(--top) + 10px) 12px calc(var(--bot) + 10px);max-width:560px;margin:0 auto}
+.topbar{display:flex;justify-content:space-between;align-items:center;
+  font-size:12px;letter-spacing:.14em;color:var(--dim);margin-bottom:8px;min-height:24px}
+.topbar b{color:var(--foam);font-family:var(--num);font-weight:500}
+
+.faceWrap{position:relative;flex:0 0 auto;display:grid;place-items:center;
+  background:rgba(183,156,255,.07);border:1px solid rgba(183,156,255,.2);
+  border-radius:24px;padding:10px;margin-bottom:12px}
+#face{display:block;width:100%;height:auto;max-height:44vh;border-radius:18px}
+.situation{font-size:15px;line-height:1.7;color:var(--foam);text-align:center;
+  padding:12px 16px 4px;min-height:0}
+.situation:empty{display:none}
+
+.ask{text-align:center;font-size:clamp(16px,4.4vw,20px);margin-bottom:12px;line-height:1.6}
+.ask small{display:block;font-size:12px;color:var(--dim);letter-spacing:.1em;margin-bottom:6px}
+
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:9px;flex:1;min-height:0;align-content:start;
+  overflow-y:auto}
+.choices.two{grid-template-columns:1fr}
+.choice{min-height:clamp(56px,9vh,74px);border-radius:18px;font-size:clamp(16px,4.4vw,19px);
+  font-weight:600;background:rgba(242,238,251,.07);border:1.5px solid rgba(242,238,251,.16)}
+.choice:active{background:rgba(242,238,251,.16)}
+.choice[data-state=good]{background:var(--mint);color:#123227;border-color:transparent}
+.choice[data-state=alt]{background:var(--peach);color:#3A2413;border-color:transparent}
+.choice[data-state=off]{opacity:.35}
+
+.feedback{display:none;flex-direction:column;gap:12px}
+.feedback.on{display:flex}
+.verdict{font-size:clamp(17px,4.8vw,21px);text-align:center;line-height:1.6}
+.verdict .em{color:var(--mint)}
+.verdict .alt{color:var(--peach)}
+.cues{background:rgba(183,156,255,.1);border:1px solid rgba(183,156,255,.26);
+  border-radius:18px;padding:15px 17px}
+.cues h4{font-size:11px;letter-spacing:.2em;color:var(--lilac);font-weight:600;margin-bottom:10px}
+.cues li{list-style:none;font-size:14.5px;line-height:1.95;padding-left:20px;position:relative}
+.cues li::before{content:'';position:absolute;left:2px;top:.72em;width:8px;height:8px;
+  border-radius:50%;background:var(--lilac)}
+.next{min-height:58px;border-radius:18px;background:var(--lilac);color:#1B1430;
+  font-size:17px;font-weight:700}
+
+.rail{display:flex;gap:8px;margin-top:10px}
+.rail button{flex:1;min-height:48px;border-radius:14px;background:rgba(242,238,251,.07);
+  border:1px solid rgba(242,238,251,.16);font-size:14px;font-weight:600}
+
+.sliders{display:none;gap:2px;flex-direction:column;margin-bottom:6px}
+.sliders.on{display:flex}
+.sliders label{font-size:13px;color:var(--dim);display:flex;justify-content:space-between;margin-top:6px}
+input[type=range]{width:100%;accent-color:var(--lilac);height:34px}
+
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:30;max-width:560px;margin:0 auto;
+  background:rgba(28,20,48,.98);backdrop-filter:blur(16px);
+  border:1px solid rgba(183,156,255,.26);border-bottom:0;border-radius:24px 24px 0 0;
+  padding:8px 20px calc(var(--bot) + 22px);max-height:86vh;overflow-y:auto;
+  transform:translateY(102%);transition:transform .28s cubic-bezier(.3,.9,.3,1)}
+.sheet.open{transform:translateY(0)}
+.grip{width:40px;height:4px;border-radius:2px;background:rgba(242,238,251,.3);margin:6px auto 16px}
+.field{margin-bottom:16px}
+.field label{font-size:14px;color:var(--dim);display:block;margin-bottom:8px}
+.sheet select{width:100%;padding:13px;border-radius:12px;background:#251A42;color:var(--foam);
+  border:1px solid rgba(242,238,251,.16);font-size:16px}
+.sheet .close{width:100%;min-height:52px;border-radius:15px;background:var(--lilac);
+  color:#1B1430;font-size:16px;font-weight:700;margin-top:4px}
+
+.screen{position:fixed;inset:0;z-index:40;display:none;overflow-y:auto;
+  background:radial-gradient(90% 60% at 50% 35%,#2C2150,#160F28)}
+.screen.on{display:block}
+.inner{min-height:100%;display:flex;flex-direction:column;justify-content:center;text-align:center;
+  padding:calc(var(--top) + 30px) 24px calc(var(--bot) + 30px);max-width:480px;margin:0 auto}
+.title{font-size:clamp(30px,6.4vmin,44px);letter-spacing:.06em;line-height:1.2}
+.title span{color:var(--lilac)}
+.sub{margin-top:14px;font-size:15px;color:var(--dim);line-height:1.9}
+.lead{font-size:11px;letter-spacing:.22em;color:var(--lilac);margin:26px 0 10px}
+.chips{display:flex;gap:7px;justify-content:center;flex-wrap:wrap}
+.chip{padding:11px 16px;border-radius:999px;border:1px solid rgba(242,238,251,.2);
+  font-size:14px;color:var(--dim)}
+.chip[aria-pressed=true]{background:var(--foam);color:#1B1430;border-color:transparent;font-weight:700}
+.howto{margin-top:16px;padding:15px 17px;border-radius:16px;text-align:left;
+  font-size:13.5px;line-height:1.95;background:rgba(183,156,255,.1);
+  border:1px solid rgba(183,156,255,.26)}
+.howto b{color:var(--lilac)}
+.big{width:100%;min-height:60px;border-radius:18px;background:var(--lilac);color:#1B1430;
+  font-size:18px;font-weight:700;margin-top:24px}
+.ghost{width:100%;min-height:52px;border-radius:18px;border:1px solid rgba(242,238,251,.2);
+  color:var(--dim);font-size:15px;margin-top:10px}
+.note{margin-top:24px;font-size:12px;color:var(--dim);line-height:1.9;text-align:left;
+  border-top:1px solid rgba(242,238,251,.12);padding-top:16px}
+.tbl{width:100%;margin-top:8px;border-collapse:collapse;font-size:14px}
+.tbl td{padding:9px 6px;border-bottom:1px solid rgba(242,238,251,.1);text-align:left}
+.tbl td:last-child{text-align:right;font-family:var(--num);color:var(--dim)}
+.bigscore{font-family:var(--num);font-size:52px;color:var(--mint);line-height:1;margin:18px 0 6px}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="topbar">
+    <span id="progress"></span>
+    <span id="hint"></span>
+  </div>
+
+  <div class="faceWrap">
+    <canvas id="face" width="480" height="380"></canvas>
+  </div>
+  <div class="situation" id="situation"></div>
+
+  <div class="sliders" id="sliders">
+    <label for="sBrow">まゆ <span id="sBrowV"></span></label>
+    <input type="range" id="sBrow" min="-100" max="100" value="0">
+    <label for="sEye">め <span id="sEyeV"></span></label>
+    <input type="range" id="sEye" min="30" max="150" value="100">
+    <label for="sMouth">くち <span id="sMouthV"></span></label>
+    <input type="range" id="sMouth" min="-100" max="100" value="0">
+  </div>
+
+  <div class="ask" id="ask"></div>
+  <div class="choices" id="choices"></div>
+
+  <div class="feedback" id="feedback">
+    <div class="verdict" id="verdict"></div>
+    <div class="cues"><h4>かおの てがかり</h4><ul id="cueList"></ul></div>
+    <button class="next" id="nextBtn">つぎへ</button>
+  </div>
+
+  <div class="rail">
+    <button id="settingsBtn">設定</button>
+    <button id="stopBtn">おわる</button>
+  </div>
+</div>
+
+<div class="sheet" id="sheet">
+  <div class="grip"></div>
+  <div class="field">
+    <label for="setCount">きもちの しゅるい</label>
+    <select id="setCount">
+      <option value="4">4つ（うれしい・かなしい・おこった・びっくり）</option>
+      <option value="6" selected>6つ（＋こわい・こまった）</option>
+      <option value="8">8つ（＋いや・つかれた）</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="setChoices">えらぶ数</label>
+    <select id="setChoices">
+      <option value="2">2つから えらぶ</option>
+      <option value="3" selected>3つから えらぶ</option>
+      <option value="4">4つから えらぶ</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="setStrength">かおの はっきりさ</label>
+    <select id="setStrength">
+      <option value="1">はっきり</option>
+      <option value="0.72" selected>ふつう</option>
+      <option value="0.48">びみょう（むずかしい）</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="setSituation">できごとの せつめい</label>
+    <select id="setSituation">
+      <option value="1" selected>出す（場面も手がかりにする）</option>
+      <option value="0">出さない（顔だけで考える）</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="setSound">音</label>
+    <select id="setSound"><option value="1" selected>鳴らす</option><option value="0">鳴らさない</option></select>
+  </div>
+  <button class="close" id="closeSheet">とじる</button>
+</div>
+
+<div class="screen on" id="intro">
+  <div class="inner">
+    <h1 class="title">きもちの <span>てがかり</span></h1>
+    <p class="sub">かおのどこを見れば気持ちが分かるのか、<br>その手がかりを一緒に探すゲームです。</p>
+
+    <div class="lead">あそびかた</div>
+    <div class="chips" id="modeChoices">
+      <button class="chip" aria-pressed="true" data-mode="read">よむ</button>
+      <button class="chip" data-mode="make">つくる</button>
+      <button class="chip" data-mode="pair">ふたりで</button>
+    </div>
+    <div class="howto" id="howto"></div>
+
+    <div class="lead">かいすう</div>
+    <div class="chips" id="trialChoices">
+      <button class="chip" data-n="8">8回</button>
+      <button class="chip" aria-pressed="true" data-n="12">12回</button>
+      <button class="chip" data-n="20">20回</button>
+    </div>
+
+    <button class="big" id="startBtn">はじめる</button>
+
+    <p class="note">
+      ・答えは1つに決めつけません。別の見方も「そう見る人もいるね」として認めます。<br>
+      ・時間制限はありません。ゆっくり見て大丈夫です。<br>
+      ・顔だけで分からない気持ちもあります。それも大事な発見として扱います。
+    </p>
+  </div>
+</div>
+
+<div class="screen" id="result">
+  <div class="inner">
+    <h1 class="title" style="font-size:28px">おつかれさま</h1>
+    <div class="bigscore" id="rScore">0</div>
+    <div style="font-size:12px;letter-spacing:.18em;color:var(--dim)" id="rOf"></div>
+    <p class="sub" id="rComment" style="margin-top:18px"></p>
+    <table class="tbl" id="rTable"></table>
+    <button class="big" id="againBtn">もういちど</button>
+    <button class="ghost" id="backBtn">あそびかたを えらぶ</button>
+  </div>
+</div>
+
+<script>
+(()=>{
+"use strict";
+const $=id=>document.getElementById(id);
+const cv=$('face'), ctx=cv.getContext('2d');
+
+/* ============ 表情のデータ ============ */
+const NEUTRAL={browY:0,browTilt:0,eye:1,squint:0,mouthCurve:0,mouthOpen:.06,
+  mouthW:1,tear:0,sweat:0,blush:0,furrow:0,wavy:0,asym:0,wrinkle:0};
+
+const EMOTIONS={
+  'うれしい':{p:{mouthCurve:.95,squint:.45,blush:.35,mouthOpen:.22,mouthW:1.15,browY:-.05},
+    cues:['くちの はしが 上に あがっている','めが ほそく なっている','ほほが すこし あかい'],
+    sit:['ずっと ほしかった 本が とどいた','あそびに いく日が きまった']},
+  'かなしい':{p:{mouthCurve:-.8,browTilt:-.55,tear:.8,eye:.85,browY:.06},
+    cues:['まゆの うちがわが 上に あがっている','くちの はしが 下を むいている','なみだが 出ている'],
+    sit:['大事に していた ものが こわれた','なかよしの 子が ひっこして いった']},
+  'おこった':{p:{mouthCurve:-.5,browTilt:.7,browY:.18,furrow:.8,mouthOpen:.14,mouthW:.9},
+    cues:['まゆが 下がって、まん中に よっている','まゆの あいだに しわが ある','くちを きゅっと むすんでいる'],
+    sit:['じゅんばんを ぬかされた','だいじな ものを かってに つかわれた']},
+  'びっくり':{p:{eye:1.45,browY:-.3,mouthOpen:.75,mouthW:.7,mouthCurve:0},
+    cues:['めが まんまるに ひらいている','まゆが 上に あがっている','くちが まるく あいている'],
+    sit:['うしろで 大きな音が した','あかない はずの ドアが あいた']},
+  'こわい':{p:{eye:1.3,browTilt:-.4,browY:-.12,mouthOpen:.4,mouthW:.72,sweat:.7,mouthCurve:-.3},
+    cues:['めが 大きく ひらいている','まゆの うちがわが 上に あがっている','あせが 出ている'],
+    sit:['くらい へやで へんな音が した','高い ところから 下を 見た']},
+  'こまった':{p:{browTilt:-.45,browY:.04,wavy:.8,sweat:.5,mouthCurve:-.15,eye:.92},
+    cues:['まゆが ハの字に なっている','くちが ゆらゆら している','すこし あせが 出ている'],
+    sit:['もちものを どこかに おいてきた','なにを すれば いいか わからない']},
+  'いや':{p:{squint:.55,mouthCurve:-.45,asym:.75,browY:.12,wrinkle:.8,mouthW:.85},
+    cues:['はなの あたりに しわが よっている','くちが かたほうだけ ゆがんでいる','めを ほそめている'],
+    sit:['にがてな においが した','さわりたくない ものが 出てきた']},
+  'つかれた':{p:{eye:.35,browY:.22,mouthCurve:-.25,mouthW:.85,browTilt:-.15},
+    cues:['めが 半分 とじている','まゆが 下がっている','くちの ちからが ぬけている'],
+    sit:['ずっと あるいて やっと ついた','いちにち ずっと いそがしかった']}
+};
+const ORDER=['うれしい','かなしい','おこった','びっくり','こわい','こまった','いや','つかれた'];
+/* 見まちがえても「そう見る人もいる」と認める組 */
+const ALT={'かなしい':['こまった'],'こまった':['かなしい','こわい'],'こわい':['びっくり','こまった'],
+  'びっくり':['こわい'],'おこった':['いや'],'いや':['おこった'],'つかれた':['かなしい','こまった']};
+
+const HOWTO={
+  read:'かおを見て、どんな気持ちか えらびます。<br>えらんだあと、<b>かおの どこが 手がかりだったか</b>を 教えてくれます。',
+  make:'お題の気持ちに なるように、<b>まゆ・め・くち</b>を うごかして かおを つくります。<br>できたら、よくある かおと 見くらべます。',
+  pair:'ひとりが お題の かおを つくり、もうひとりが 当てます。<br>1台を わたしながら 2人で あそべます。'
+};
+
+/* ============ 顔を描く ============ */
+function lerpP(target,k){
+  const p={};
+  for(const key in NEUTRAL) p[key]=NEUTRAL[key]+((target[key]!==undefined?target[key]:NEUTRAL[key])-NEUTRAL[key])*k;
+  return p;
+}
+function drawFace(p){
+  const W=cv.width, H=cv.height, cx=W/2, cy=H/2;
+  const R=Math.min(W,H)*0.36;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#241A3F'; ctx.fillRect(0,0,W,H);
+
+  // 顔
+  const g=ctx.createRadialGradient(cx-R*.3,cy-R*.35,R*.15,cx,cy,R*1.05);
+  g.addColorStop(0,'#FFE2C9'); g.addColorStop(1,'#F0C4A6');
+  ctx.fillStyle=g;
+  ctx.beginPath(); ctx.ellipse(cx,cy,R*.92,R,0,0,6.283); ctx.fill();
+
+  // ほほ
+  if(p.blush>0.02){
+    ctx.save(); ctx.globalAlpha=p.blush*.7; ctx.fillStyle='#FF9BB3';
+    [-1,1].forEach(s=>{ ctx.beginPath();
+      ctx.ellipse(cx+s*R*.52,cy+R*.24,R*.19,R*.12,0,0,6.283); ctx.fill(); });
+    ctx.restore();
+  }
+
+  const eyeY=cy-R*.1, eyeDX=R*.36, eyeR=R*.15;
+
+  // 目
+  [-1,1].forEach(s=>{
+    const ex=cx+s*eyeDX;
+    const openK=Math.max(.06,p.eye*(1-p.squint*.72));
+    const h=eyeR*openK;
+    ctx.fillStyle='#FFFFFF';
+    ctx.beginPath(); ctx.ellipse(ex,eyeY,eyeR*1.02,h,0,0,6.283); ctx.fill();
+    // ひとみ
+    ctx.fillStyle='#3A2E52';
+    const pr=Math.min(eyeR*.56,h*1.25);
+    ctx.beginPath(); ctx.ellipse(ex,eyeY,pr*.82,Math.min(pr,h),0,0,6.283); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.85)';
+    ctx.beginPath(); ctx.arc(ex-pr*.3,eyeY-Math.min(pr,h)*.35,pr*.22,0,6.283); ctx.fill();
+    // まぶたの線
+    ctx.strokeStyle='rgba(90,66,120,.55)'; ctx.lineWidth=Math.max(1.5,R*.016);
+    ctx.beginPath(); ctx.ellipse(ex,eyeY,eyeR*1.02,h,0,Math.PI,0); ctx.stroke();
+  });
+
+  // まゆ
+  ctx.strokeStyle='#5A3F6B'; ctx.lineWidth=Math.max(3,R*.055); ctx.lineCap='round';
+  [-1,1].forEach(s=>{
+    const bx=cx+s*eyeDX, by=eyeY-eyeR*1.9+p.browY*R*.5;
+    const inner=by+p.browTilt*R*.16*(-1), outer=by-p.browTilt*R*.10*(-1);
+    ctx.beginPath();
+    ctx.moveTo(bx-s*eyeR*1.15, outer);
+    ctx.quadraticCurveTo(bx, by-R*.045, bx+s*eyeR*1.05, inner);
+    ctx.stroke();
+  });
+
+  // まゆ間のしわ
+  if(p.furrow>.05){
+    ctx.save(); ctx.globalAlpha=Math.min(1,p.furrow);
+    ctx.strokeStyle='#B98C7A'; ctx.lineWidth=Math.max(2,R*.022);
+    [-1,1].forEach(s=>{ ctx.beginPath();
+      ctx.moveTo(cx+s*R*.05, eyeY-eyeR*2.0);
+      ctx.lineTo(cx+s*R*.09, eyeY-eyeR*1.35); ctx.stroke(); });
+    ctx.restore();
+  }
+  // はなのしわ
+  if(p.wrinkle>.05){
+    ctx.save(); ctx.globalAlpha=Math.min(1,p.wrinkle);
+    ctx.strokeStyle='#C08E78'; ctx.lineWidth=Math.max(2,R*.02);
+    for(let i=0;i<3;i++){ ctx.beginPath();
+      ctx.moveTo(cx-R*.13, cy+R*.06+i*R*.05);
+      ctx.quadraticCurveTo(cx, cy+R*.02+i*R*.05, cx+R*.13, cy+R*.06+i*R*.05);
+      ctx.stroke(); }
+    ctx.restore();
+  }
+
+  // はな
+  ctx.strokeStyle='rgba(150,105,90,.7)'; ctx.lineWidth=Math.max(2,R*.022);
+  ctx.beginPath(); ctx.moveTo(cx-R*.04,cy+R*.16); ctx.quadraticCurveTo(cx+R*.03,cy+R*.2,cx+R*.05,cy+R*.13);
+  ctx.stroke();
+
+  // くち
+  const my=cy+R*.44, mw=R*.30*p.mouthW, curve=p.mouthCurve*R*.26, open=p.mouthOpen*R*.55;
+  ctx.strokeStyle='#7A3B4E'; ctx.lineWidth=Math.max(3,R*.045); ctx.lineJoin='round';
+  if(open>R*.10){
+    ctx.fillStyle='#7A3B4E';
+    ctx.beginPath();
+    ctx.moveTo(cx-mw,my);
+    ctx.quadraticCurveTo(cx,my+curve+open,cx+mw,my);
+    ctx.quadraticCurveTo(cx,my+curve-open*.35,cx-mw,my);
+    ctx.fill();
+  }else if(p.wavy>.05){
+    ctx.beginPath(); ctx.moveTo(cx-mw,my);
+    ctx.bezierCurveTo(cx-mw*.4,my-R*.07,cx+mw*.4,my+R*.07,cx+mw,my-R*.02);
+    ctx.stroke();
+  }else{
+    ctx.beginPath(); ctx.moveTo(cx-mw,my+p.asym*R*.09);
+    ctx.quadraticCurveTo(cx,my+curve,cx+mw,my-p.asym*R*.05);
+    ctx.stroke();
+  }
+
+  // なみだ
+  if(p.tear>.05){
+    ctx.save(); ctx.globalAlpha=Math.min(1,p.tear); ctx.fillStyle='#8CC8FF';
+    [-1,1].forEach(s=>{ const ex=cx+s*eyeDX;
+      ctx.beginPath();
+      ctx.ellipse(ex+s*eyeR*.5, eyeY+eyeR*2.0, R*.045, R*.085,0,0,6.283); ctx.fill(); });
+    ctx.restore();
+  }
+  // あせ
+  if(p.sweat>.05){
+    ctx.save(); ctx.globalAlpha=Math.min(1,p.sweat); ctx.fillStyle='#9FD8FF';
+    ctx.beginPath();
+    ctx.ellipse(cx+R*.72, cy-R*.42, R*.05, R*.085, .3, 0, 6.283); ctx.fill();
+    ctx.restore();
+  }
+}
+/* 手がかりの場所を丸で示す */
+function markCues(keys){
+  const W=cv.width,H=cv.height,cx=W/2,cy=H/2,R=Math.min(W,H)*0.36;
+  const spots={brow:[cx,cy-R*.42,R*.62,R*.20],eye:[cx,cy-R*.1,R*.62,R*.24],
+    mouth:[cx,cy+R*.44,R*.42,R*.18]};
+  ctx.save();
+  ctx.strokeStyle='#B79CFF'; ctx.lineWidth=Math.max(3,R*.03); ctx.setLineDash([R*.08,R*.06]);
+  keys.forEach(k=>{ const s=spots[k]; if(!s) return;
+    ctx.beginPath(); ctx.ellipse(s[0],s[1],s[2],s[3],0,0,6.283); ctx.stroke(); });
+  ctx.restore();
+}
+function cueSpots(name){
+  const m={'うれしい':['mouth','eye'],'かなしい':['brow','mouth'],'おこった':['brow','mouth'],
+    'びっくり':['eye','brow'],'こわい':['eye','brow'],'こまった':['brow','mouth'],
+    'いや':['mouth','eye'],'つかれた':['eye','brow']};
+  return m[name]||['brow','mouth'];
+}
+
+/* ============ 音 ============ */
+let ac=null;
+function unlockAudio(){
+  const C=window.AudioContext||window.webkitAudioContext; if(!C) return;
+  if(!ac) ac=new C(); if(ac.state==='suspended') ac.resume();
+}
+function tone(fr,amp,at,dur,type){
+  if(!ac||!cfg.sound) return;
+  const o=ac.createOscillator(), g=ac.createGain();
+  o.type=type||'sine'; o.frequency.setValueAtTime(fr,at);
+  g.gain.setValueAtTime(0,at); g.gain.linearRampToValueAtTime(amp,at+.015);
+  g.gain.exponentialRampToValueAtTime(.0001,at+dur);
+  o.connect(g).connect(ac.destination); o.start(at); o.stop(at+dur+.05);
+}
+const sGood=()=>{ if(!ac)return; const t=ac.currentTime;
+  [523.25,659.25,783.99].forEach((f,i)=>tone(f,.15,t+i*.08,.5,'triangle')); };
+const sAlt =()=>{ if(!ac)return; const t=ac.currentTime;
+  [440,554.37].forEach((f,i)=>tone(f,.13,t+i*.09,.5,'sine')); };
+const sSoft=()=>{ if(!ac)return; tone(261.6,.12,ac.currentTime,.45,'sine'); };
+const sEnd =()=>{ if(!ac)return; const t=ac.currentTime;
+  [523.25,659.25,783.99,1046.5].forEach((f,i)=>tone(f,.14,t+i*.13,.9,'sine')); };
+
+/* ============ 状態 ============ */
+let mode='read', totalTrials=12;
+let pool=[], trial=0, current=null, answered=false, log=[];
+let pairPhase='make';
+const cfg={count:6,choices:3,strength:.72,situation:1,sound:1};
+
+function usedEmotions(){ return ORDER.slice(0,cfg.count); }
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];} return a; }
+
+/* ============ よむ ============ */
+function newRead(){
+  const list=usedEmotions();
+  const name=list[Math.random()*list.length|0];
+  const wrong=shuffle(list.filter(n=>n!==name)).slice(0,cfg.choices-1);
+  current={name,options:shuffle([name,...wrong])};
+  drawFace(lerpP(EMOTIONS[name].p,cfg.strength));
+  $('situation').textContent=cfg.situation
+    ? EMOTIONS[name].sit[Math.random()*EMOTIONS[name].sit.length|0] : '';
+  $('ask').innerHTML='<small>どんな きもち？</small>';
+  renderChoices(current.options,pickRead);
+  showQuestion();
+}
+function pickRead(name,btn){
+  if(answered) return; answered=true;
+  const truth=current.name;
+  const alt=(ALT[truth]||[]).includes(name);
+  const good=(name===truth);
+  [...$('choices').children].forEach(b=>{
+    if(b.dataset.name===truth) b.dataset.state='good';
+    else if(b===btn) b.dataset.state=alt?'alt':'off';
+    else b.dataset.state='off';
+    b.disabled=true;
+  });
+  log.push({name:truth,result:good?'good':(alt?'alt':'miss')});
+  drawFace(lerpP(EMOTIONS[truth].p,cfg.strength));
+  markCues(cueSpots(truth));
+  if(good){ sGood(); $('verdict').innerHTML='<span class="em">そうだね、'+truth+'。</span>'; }
+  else if(alt){ sAlt(); $('verdict').innerHTML='<span class="alt">そう見る人も いるね。</span><br>この かおは 「'+truth+'」の ことが 多いよ。'; }
+  else{ sSoft(); $('verdict').innerHTML='この かおは 「'+truth+'」だよ。<br>どこを 見ると 分かるかな。'; }
+  showCues(EMOTIONS[truth].cues);
+}
+
+/* ============ つくる／ふたりで ============ */
+const sliderP={brow:0,eye:1,mouth:0};
+function sliderParams(){
+  return {browY:sliderP.brow>0?.16*sliderP.brow:.05*-sliderP.brow,
+    browTilt:sliderP.brow, eye:sliderP.eye, squint:sliderP.eye<.7?(0.7-sliderP.eye):0,
+    mouthCurve:sliderP.mouth, mouthOpen:.06+Math.max(0,sliderP.mouth)*.16,
+    mouthW:1,tear:0,sweat:0,blush:Math.max(0,sliderP.mouth)*.3,
+    furrow:sliderP.brow>.4?(sliderP.brow-.4)*1.4:0,wavy:0,asym:0,wrinkle:0};
+}
+function drawSlider(){ drawFace(sliderParams()); }
+function newMake(){
+  const list=usedEmotions();
+  current={name:list[Math.random()*list.length|0]};
+  sliderP.brow=0; sliderP.eye=1; sliderP.mouth=0;
+  $('sBrow').value=0; $('sEye').value=100; $('sMouth').value=0;
+  $('sliders').classList.add('on');
+  $('situation').textContent='';
+  $('ask').innerHTML='<small>この きもちの かおを つくろう</small>'+current.name;
+  renderChoices(['できた'],()=>judgeMake());
+  showQuestion();
+  drawSlider();
+}
+function judgeMake(){
+  if(answered) return; answered=true;
+  const truth=current.name, model=lerpP(EMOTIONS[truth].p,1);
+  const mine=sliderParams();
+  const near=(a,b,tol)=>Math.abs(a-b)<=tol;
+  const hits=[];
+  if(near(Math.sign(mine.browTilt)||0,Math.sign(model.browTilt)||0,0)&&Math.abs(model.browTilt)>.1) hits.push('まゆ');
+  if(near(mine.eye,model.eye,.35)) hits.push('め');
+  if(Math.sign(mine.mouthCurve)===Math.sign(model.mouthCurve)||Math.abs(model.mouthCurve)<.15) hits.push('くち');
+  log.push({name:truth,result:hits.length>=2?'good':(hits.length===1?'alt':'miss')});
+  if(hits.length>=2){ sGood(); $('verdict').innerHTML='<span class="em">にているね。</span>'+hits.join('と')+'が よく あっているよ。'; }
+  else if(hits.length===1){ sAlt(); $('verdict').innerHTML='<span class="alt">'+hits[0]+'は あっているね。</span><br>ほかの ところも 見てみよう。'; }
+  else{ sSoft(); $('verdict').innerHTML='よくある「'+truth+'」の かおは こんな かたち。<br>見くらべて みよう。'; }
+  $('sliders').classList.remove('on');
+  drawFace(model); markCues(cueSpots(truth));
+  showCues(EMOTIONS[truth].cues);
+}
+function newPair(){
+  const list=usedEmotions();
+  current={name:list[Math.random()*list.length|0]};
+  pairPhase='make';
+  sliderP.brow=0; sliderP.eye=1; sliderP.mouth=0;
+  $('sBrow').value=0; $('sEye').value=100; $('sMouth').value=0;
+  $('sliders').classList.add('on');
+  $('situation').textContent='';
+  $('ask').innerHTML='<small>ひとりめ：この かおを つくって、わたそう</small>'+current.name;
+  renderChoices(['できた'],()=>pairGuess());
+  showQuestion(); drawSlider();
+}
+function pairGuess(){
+  pairPhase='guess';
+  $('sliders').classList.remove('on');
+  const list=usedEmotions();
+  const wrong=shuffle(list.filter(n=>n!==current.name)).slice(0,cfg.choices-1);
+  $('ask').innerHTML='<small>ふたりめ：どんな きもちの かお？</small>';
+  renderChoices(shuffle([current.name,...wrong]),(name,btn)=>{
+    if(answered) return; answered=true;
+    const good=(name===current.name);
+    const alt=(ALT[current.name]||[]).includes(name);
+    [...$('choices').children].forEach(b=>{
+      if(b.dataset.name===current.name) b.dataset.state='good';
+      else if(b===btn) b.dataset.state=alt?'alt':'off'; else b.dataset.state='off';
+      b.disabled=true;
+    });
+    log.push({name:current.name,result:good?'good':(alt?'alt':'miss')});
+    if(good){ sGood(); $('verdict').innerHTML='<span class="em">つたわったね。</span>'; }
+    else if(alt){ sAlt(); $('verdict').innerHTML='<span class="alt">にている きもちだね。</span><br>お題は 「'+current.name+'」だったよ。'; }
+    else{ sSoft(); $('verdict').innerHTML='お題は 「'+current.name+'」。<br>どこを かえると つたわるかな。'; }
+    markCues(cueSpots(current.name));
+    showCues(EMOTIONS[current.name].cues);
+  });
+  answered=false;
+  $('feedback').classList.remove('on');
+  $('choices').style.display='';
+}
+
+/* ============ 画面 ============ */
+function renderChoices(names,handler){
+  const box=$('choices');
+  box.innerHTML=''; box.classList.toggle('two',names.length<=2);
+  names.forEach(n=>{
+    const b=document.createElement('button');
+    b.className='choice'; b.textContent=n; b.dataset.name=n;
+    b.onclick=()=>handler(n,b);
+    box.appendChild(b);
+  });
+}
+function showQuestion(){
+  answered=false;
+  $('feedback').classList.remove('on');
+  $('choices').style.display='';
+  $('progress').textContent=(trial+1)+' / '+totalTrials;
+  $('hint').textContent={read:'よむ',make:'つくる',pair:'ふたりで'}[mode];
+}
+function showCues(list){
+  $('cueList').innerHTML=list.map(c=>'<li>'+c+'</li>').join('');
+  $('choices').style.display='none';
+  $('feedback').classList.add('on');
+}
+function nextTrial(){
+  trial++;
+  if(trial>=totalTrials){ finish(); return; }
+  if(mode==='read') newRead();
+  else if(mode==='make') newMake();
+  else newPair();
+}
+function start(){
+  unlockAudio();
+  trial=0; log=[];
+  $('intro').classList.remove('on'); $('result').classList.remove('on');
+  if(mode==='read') newRead(); else if(mode==='make') newMake(); else newPair();
+}
+function finish(){
+  const good=log.filter(l=>l.result==='good').length;
+  const alt=log.filter(l=>l.result==='alt').length;
+  $('rScore').textContent=good;
+  $('rOf').textContent=totalTrials+'かい中　（にている答え '+alt+'）';
+  $('rComment').textContent = good>=totalTrials*0.8
+    ? 'よく 見えているね。びみょうな かおにも ちょうせんしてみよう。'
+    : good>=totalTrials*0.4
+    ? 'まゆと くちを 見ると、分かりやすく なるよ。'
+    : '「はっきり」や「2つから えらぶ」に すると、やりやすく なるよ。';
+  const by={};
+  log.forEach(l=>{ by[l.name]=by[l.name]||{g:0,n:0}; by[l.name].n++; if(l.result==='good') by[l.name].g++; });
+  $('rTable').innerHTML=Object.keys(by).map(k=>
+    '<tr><td>'+k+'</td><td>'+by[k].g+' / '+by[k].n+'</td></tr>').join('');
+  sEnd();
+  $('result').classList.add('on'); $('sheet').classList.remove('open');
+}
+
+/* ============ UI ============ */
+$('nextBtn').onclick=nextTrial;
+$('startBtn').onclick=start;
+$('againBtn').onclick=start;
+$('backBtn').onclick=()=>{$('result').classList.remove('on');$('intro').classList.add('on')};
+$('stopBtn').onclick=finish;
+$('settingsBtn').onclick=()=>$('sheet').classList.toggle('open');
+$('closeSheet').onclick=()=>$('sheet').classList.remove('open');
+$('modeChoices').onclick=e=>{
+  const b=e.target.closest('[data-mode]'); if(!b) return;
+  [...$('modeChoices').children].forEach(c=>c.setAttribute('aria-pressed','false'));
+  b.setAttribute('aria-pressed','true'); mode=b.dataset.mode;
+  $('howto').innerHTML=HOWTO[mode];
+};
+$('trialChoices').onclick=e=>{
+  const b=e.target.closest('[data-n]'); if(!b) return;
+  [...$('trialChoices').children].forEach(c=>c.setAttribute('aria-pressed','false'));
+  b.setAttribute('aria-pressed','true'); totalTrials=+b.dataset.n;
+};
+$('setCount').onchange=e=>cfg.count=+e.target.value;
+$('setChoices').onchange=e=>cfg.choices=+e.target.value;
+$('setStrength').onchange=e=>cfg.strength=+e.target.value;
+$('setSituation').onchange=e=>cfg.situation=+e.target.value;
+$('setSound').onchange=e=>cfg.sound=+e.target.value;
+
+function bindSlider(id,key,scale,label){
+  const el=$(id);
+  el.oninput=()=>{ sliderP[key]=el.value/scale; $(label).textContent=''; drawSlider(); };
+}
+bindSlider('sBrow','brow',100,'sBrowV');
+bindSlider('sEye','eye',100,'sEyeV');
+bindSlider('sMouth','mouth',100,'sMouthV');
+
+$('howto').innerHTML=HOWTO[mode];
+drawFace(lerpP(EMOTIONS['うれしい'].p,.7));
+})();
+</script>
+</body>
+</html>
